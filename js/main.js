@@ -177,14 +177,24 @@ function initContactForm() {
   // server, or any other static host — the browser posts straight to the
   // backend URL. That cross-origin request is allowed because server.js
   // enables CORS for all origins.
+
+  // ---- BACKEND ADDRESS ----
+  //  • Local dev (localhost / Vite / Live Server): posts to http://localhost:5000
+  //  • Live site (GitHub Pages / any domain):      posts to your Render service
+  // Change BACKEND_URL here whenever you move the backend.
+  const BACKEND_URL = 'https://rahman-portfolio-84wk.onrender.com';
+
+  const hostname = window.location.hostname;
   const isBackendOrigin = window.location.port === '5000';
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
   const API_URL = isBackendOrigin
     ? '/api/contact'
-    : 'http://localhost:5000/api/contact';
+    : isLocalHost
+      ? 'http://localhost:5000/api/contact'
+      : `${BACKEND_URL}/api/contact`;
 
   // Local dev = localhost / 127.0.0.1. Anything else is a live/public host.
-  const hostname = window.location.hostname;
-  const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalDev = isLocalHost;
 
   // On the live site, if the form can't reach the backend we offer a direct,
   // guaranteed channel instead of an error wall (verified works for visitors).
