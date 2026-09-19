@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { EMAIL, WHATSAPP_LINK, WHATSAPP_DISPLAY, INSTAGRAM, INSTAGRAM_HANDLE, BOOKING_LINK } from '../data/content.js';
 
+// API base for the contact form.
+//  • '' (default) = same origin — works in dev (Vite proxy) and when the
+//    backend itself serves the React site (Render). 
+//  • To post to a hosted backend from anywhere, create react-app/.env with:
+//      VITE_API_BASE=https://rahman-portfolio-84wk.onrender.com
+const API_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE)
+    ? String(import.meta.env.VITE_API_BASE)
+    : '';
+
 export default function Contact() {
   const [status, setStatus] = useState('');
   const [isError, setIsError] = useState(false);
@@ -42,17 +52,17 @@ export default function Contact() {
     setStatus('Sending your message…');
 
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          business,
-          message,
-          _honey: fd.get('_honey') || '',
-        }),
-      });
+  const res = await fetch(`${API_BASE}/api/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      email,
+      business,
+      message,
+      _honey: fd.get('_honey') || '',
+    }),
+  });
 
       let data = {};
       try {
