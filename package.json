@@ -1,0 +1,13 @@
+{
+  "name": "rahman-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Abdul Rahman - Digital Marketer Portfolio (React frontend + Express backend)",
+  "scripts": {
+    "dev": "start \"Rahman Backend\" cmd /k \"cd /d server && npm run dev\" && timeout /t 3 /nobreak >nul && cd /d react-app && npm run dev",
+    "dev:frontend": "cd /d react-app && npm run dev",
+    "dev:backend": "cd /d server && npm run dev",
+    "build": "cd /d react-app && npm run build",
+    "start": "cd /d server && npm run start"
+  }
+}

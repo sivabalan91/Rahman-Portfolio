@@ -1,0 +1,23 @@
+# --- Dependencies ---
+node_modules/
+
+# --- Build output ---
+dist/
+react-app/dist/
+
+# --- Secrets (never commit!) ---
+server/.env
+*.env.local
+
+# --- Runtime data & logs ---
+server/data/
+*.log
+react-app/vite.log
+react-app/vite-err.log
+server/server.log
+server/server-err.log
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
