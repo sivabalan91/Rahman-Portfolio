@@ -182,6 +182,24 @@ function initContactForm() {
     ? '/api/contact'
     : 'http://localhost:5000/api/contact';
 
+  // Local dev = localhost / 127.0.0.1. Anything else is a live/public host.
+  const hostname = window.location.hostname;
+  const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  // On the live site, if the form can't reach the backend we offer a direct,
+  // guaranteed channel instead of an error wall (verified works for visitors).
+  const showLiveFallback = (name, business, message) => {
+    const wa = 'https://wa.me/916384157591?text=' + encodeURIComponent(
+      `Hi Abdul! I tried to send a message via your portfolio. ${name}` +
+      (business ? ` (${business})` : '') + `: ${message}`
+    );
+    note.classList.toggle('error', false);
+    note.innerHTML =
+      `Couldn&rsquo;t send a message right now, but I&rsquo;m one tap away ⇢ ` +
+      `<a href="${wa}" target="_blank" rel="noopener">Message on WhatsApp</a>` +
+      ` or email <a href="mailto:abdulrahman.digimarketing@gmail.com">abdulrahman.digimarketing@gmail.com</a>`;
+  };
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -239,10 +257,14 @@ function initContactForm() {
     } catch (err) {
       // Any failure here means the backend didn't respond properly.
       console.error('Contact form error:', err);
-      showStatus(
-        'Could not reach the backend server. Make sure it is running (start-all.bat) and try again — or email me directly at abdulrahman.digimarketing@gmail.com.',
-        true
-      );
+      if (!isLocalDev) {
+        showLiveFallback(name, business, message);
+      } else {
+        showStatus(
+          'Could not reach the backend server. Make sure it is running (npm run dev:backend) and try again — or email me directly at abdulrahman.digimarketing@gmail.com.',
+          true
+        );
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = originalLabel;

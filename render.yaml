@@ -1,0 +1,26 @@
+# Render.com blueprint — full-stack deploy (API + built React site = single URL)
+# Uses the root package.json: build (React) then start (Express serves dist + /api).
+services:
+  - type: web
+    name: rahman-portfolio
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: true
+      - key: SMTP_USER
+        value: abdulrahman.digimarketing@gmail.com
+      - key: SMTP_PASS
+        sync: false
+      - key: TO_EMAIL
+        value: abdulrahman.digimarketing@gmail.com
+      - key: ADMIN_KEY
+        sync: false
+      - key: PORT
+        value: "10000"

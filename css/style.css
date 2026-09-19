@@ -1209,6 +1209,11 @@ button { font-family: inherit; cursor: pointer; }
 
 .form-note.error { color: #ef4444; }
 
+.form-note a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 /* ---------- Footer ---------- */
 .site-footer {
   border-top: 1px solid var(--border);
