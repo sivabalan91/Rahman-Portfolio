@@ -18,6 +18,8 @@ services:
         value: abdulrahman.digimarketing@gmail.com
       - key: SMTP_PASS
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
       - key: TO_EMAIL
         value: abdulrahman.digimarketing@gmail.com
       - key: ADMIN_KEY

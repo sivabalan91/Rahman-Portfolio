@@ -36,8 +36,14 @@ app.use('/api/contact', (req, res, next) => {
 const TO_EMAIL = process.env.TO_EMAIL || 'abdulrahman.digimarketing@gmail.com';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Returns a nodemailer transport, or null when SMTP is not configured yet. */
-function buildMailer() {
+/**
+ * Email transport.
+ *  1) RESEND_API_KEY set  -> send over HTTPS (port 443). Works on Render's free plan.
+ *  2) SMTP_PASS set       -> Nodemailer SMTP (works locally / on paid hosts, but Render's
+ *                            free plan blocks SMTP ports 25/465/587).
+ *  3) neither             -> email disabled, submissions are only stored.
+ */
+function buildSmtp() {
   const pass = process.env.SMTP_PASS;
   if (!pass || pass.startsWith('your-')) return null;
   return nodemailer.createTransport({
@@ -45,10 +51,41 @@ function buildMailer() {
     port: Number(process.env.SMTP_PORT || 465),
     secure: process.env.SMTP_SECURE !== 'false',
     auth: { user: process.env.SMTP_USER, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 }
 
-const mailer = buildMailer();
+const RESEND_KEY = (process.env.RESEND_API_KEY || '').trim();
+const RESEND_FROM = process.env.RESEND_FROM || 'Rahman Portfolio <onboarding@resend.dev>';
+const smtp = RESEND_KEY ? null : buildSmtp();
+const mailMode = RESEND_KEY ? 'resend' : smtp ? 'smtp' : 'none';
+
+async function sendViaResend({ subject, text, html, replyTo }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: RESEND_FROM, to: [TO_EMAIL], reply_to: replyTo, subject, text, html }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+}
+
+async function sendMail(payload) {
+  if (mailMode === 'resend') return sendViaResend(payload);
+  return smtp.sendMail({
+    from: `"Rahman Portfolio" <${process.env.SMTP_USER}>`,
+    to: TO_EMAIL,
+    replyTo: payload.replyTo,
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html,
+  });
+}
+
+const esc = (s) =>
+  String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function renderHtml(submission) {
   return `
@@ -58,13 +95,13 @@ function renderHtml(submission) {
       </div>
       <div style="padding:24px;color:#111827;line-height:1.6;font-size:14px">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#6b7280;width:110px"><b>Name</b></td><td>${submission.name}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280"><b>Email</b></td><td><a href="mailto:${submission.email}">${submission.email}</a></td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280"><b>Business</b></td><td>${submission.business || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;width:110px"><b>Name</b></td><td>${esc(submission.name)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280"><b>Email</b></td><td><a href="mailto:${esc(submission.email)}">${esc(submission.email)}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280"><b>Business</b></td><td>${esc(submission.business || '—')}</td></tr>
           <tr><td style="padding:6px 0;color:#6b7280"><b>Received</b></td><td>${new Date(submission.createdAt).toLocaleString()}</td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0" />
-        <p style="white-space:pre-wrap;margin:0">${submission.message}</p>
+        <p style="white-space:pre-wrap;margin:0">${esc(submission.message)}</p>
       </div>
     </div>`;
 }
@@ -112,11 +149,9 @@ app.post('/api/contact', async (req, res) => {
 
   // 2) Send the notification email (best effort)
   let emailSent = false;
-  if (mailer) {
+  if (mailMode !== 'none') {
     try {
-      await mailer.sendMail({
-        from: `"Rahman Portfolio" <${process.env.SMTP_USER}>`,
-        to: TO_EMAIL,
+      await sendMail({
         replyTo: email,
         subject: `[Portfolio Enquiry] ${name}${business ? ` - ${business}` : ''}`,
         text:
@@ -129,23 +164,26 @@ app.post('/api/contact', async (req, res) => {
       });
       emailSent = true;
     } catch (err) {
-      console.error('Email send failed:', err.message);
+      console.error(`Email send failed (${mailMode}):`, err.message);
     }
   }
 
   const messageToShow = emailSent
     ? 'Sent! Thanks for reaching out \u2014 I\u2019ll reply soon.'
-    : mailer
-      ? 'Message saved. (Email delivery failed \u2014 please check SMTP settings.)'
-      : 'Message saved, but email is not configured yet. Add your Gmail App Password in server/.env (SMTP_PASS).';
+    : mailMode !== 'none'
+      ? 'Message saved. (Email delivery failed \u2014 please check the server logs.)'
+      : 'Message saved, but email is not configured yet. Add RESEND_API_KEY in the server environment.';
 
   res.json({
-    success: Boolean(emailSent || !mailer),
+    success: Boolean(emailSent || mailMode === 'none'),
     stored: true,
     emailSent,
     message: messageToShow,
   });
 });
+
+// Quick check of which email mode is active: GET /api/health
+app.get('/api/health', (_req, res) => res.json({ ok: true, mail: mailMode }));
 
 // View stored submissions — protected by ADMIN_KEY from server/.env.
 // Call with:  /api/submissions?key=YOUR_KEY   or the  x-admin-key: YOUR_KEY  header.
@@ -170,7 +208,5 @@ const PORT = Number(process.env.PORT || 5000);
 app.listen(PORT, () => {
   console.log(`✅ Backend running at http://localhost:${PORT}`);
   console.log(`   API: POST /api/contact  |  GET /api/submissions`);
-  console.log(
-    mailer ? '   Email: SMTP configured \u2014 notifications will be sent.' : '   Email: SMTP not configured yet (see server/.env).'
-  );
+  console.log(`   Email mode: ${mailMode}`);
 });
