@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { EMAIL, WHATSAPP_LINK, WHATSAPP_DISPLAY, INSTAGRAM, INSTAGRAM_HANDLE, BOOKING_LINK } from '../data/content.js';
 
 // API base for the contact form.
-//  • '' (default) = same origin — works in dev (Vite proxy) and when the
-//    backend itself serves the React site (Render). 
-//  • To post to a hosted backend from anywhere, create react-app/.env with:
-//      VITE_API_BASE=https://rahman-portfolio-84wk.onrender.com
-const API_BASE =
-  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE)
-    ? String(import.meta.env.VITE_API_BASE)
-    : '';
+//  • Local dev (Vite proxy) & when the backend serves the React site (Render) → same origin ('')
+//  • Any other live host (Vercel, GitHub Pages) → posts to the Render backend (CORS is enabled)
+const getApiBase = () => {
+  if (typeof window === 'undefined') return '';
+  const { hostname, port } = window.location;
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isBackendOrigin = port === '5000' || hostname.endsWith('onrender.com');
+  if (isLocalHost || isBackendOrigin) return '';
+  return 'https://rahman-portfolio-84wk.onrender.com';
+};
 
 export default function Contact() {
   const [status, setStatus] = useState('');
@@ -52,7 +54,7 @@ export default function Contact() {
     setStatus('Sending your message…');
 
     try {
-  const res = await fetch(`${API_BASE}/api/contact`, {
+  const res = await fetch(`${getApiBase()}/api/contact`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -81,12 +83,15 @@ export default function Contact() {
       setStatus(data?.message || 'Sent! Thanks for reaching out \u2014 I\u2019ll reply soon.');
       form.reset();
     } catch (err) {
-      // Any failure here means the backend didn't respond properly:
-      // the backend is stopped, or the Vite proxy couldn't reach it.
+      // Any failure here means the backend didn't respond properly.
       console.error('Contact form error:', err);
       setIsError(true);
+      const isLocalHost =
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       setStatus(
-        `Could not reach the backend server. Make sure it is running (start-all.bat) and try again — or email me directly at ${EMAIL}.`
+        isLocalHost
+          ? 'Could not reach the local backend. Make sure it is running (npm run dev:backend) and try again.'
+          : `Couldn't send your message right now — please email me at ${EMAIL} or reach me on WhatsApp.`
       );
     } finally {
       setSending(false);
