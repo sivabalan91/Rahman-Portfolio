@@ -442,6 +442,13 @@ button { font-family: inherit; cursor: pointer; }
   margin-inline: auto;
 }
 
+@media (min-width: 993px) {
+  .hero-visual .avatar-wrap {
+    width: min(330px, 76%);
+    margin-inline: auto 16px;
+  }
+}
+
 .avatar-card {
   position: relative;
   width: 100%;
@@ -1355,7 +1362,7 @@ button { font-family: inherit; cursor: pointer; }
 
   .timeline-head { flex-direction: column; gap: 8px; }
 
-  .avatar-wrap { width: min(280px, 82%); }
+  .avatar-wrap { width: min(200px, 82%); }
 
   .contact-form { padding: 28px 22px; }
 
@@ -1457,7 +1464,7 @@ button { font-family: inherit; cursor: pointer; }
   }
   .hero-actions .btn { width: 100%; }
 
-  .avatar-wrap { width: min(250px, 86%); }
+  .avatar-wrap { width: min(200px, 86%); }
 
   .hero-name { font-size: clamp(1.9rem, 9vw, 2.6rem); }
   .hero-bio { font-size: 0.96rem; }
@@ -1492,7 +1499,7 @@ button { font-family: inherit; cursor: pointer; }
   .section { padding: 48px 0; }
 
   .hero-name { font-size: clamp(1.7rem, 8.4vw, 2.2rem); }
-  .avatar-wrap { width: min(220px, 88%); }
+  .avatar-wrap { width: min(200px, 88%); }
 
   .timeline-item { padding-left: 30px; }
   .contact-form { padding: 20px 14px; }
@@ -1503,6 +1510,9 @@ button { font-family: inherit; cursor: pointer; }
 /* Tablets & stacked layouts: keep hero photo + text tidy */
 @media (max-width: 992px) {
   .hero-visual {
+    /* auto margins below cancel grid stretching, so the width must be explicit;
+       without it the percentage width inside .avatar-wrap resolves to 0 and the photo disappears */
+    width: 100%;
     justify-content: center;
     margin-left: auto;
     margin-right: auto;
@@ -1516,6 +1526,11 @@ button { font-family: inherit; cursor: pointer; }
     margin-left: auto;
     margin-right: auto;
   }
+}
+
+/* Tablets (541-992px): photo capped so it stays comfortably smaller than desktop */
+@media (min-width: 541px) and (max-width: 992px) {
+  .avatar-wrap { width: min(280px, 82%); }
 }
 
 /* Long emails / URLs can never break the layout */
